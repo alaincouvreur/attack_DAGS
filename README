@@ -6,7 +6,7 @@ Contact : alain.couvreur@inria.fr
 
 -------------------------------------
 
-This is the implementation of the attack on DAGS scheme presented in 
+This is a Magma implementation of the attack on DAGS scheme presented in 
 the article:
 
 Élise Barelli, Alain Couvreur. An efficient structural attack on NIST submission DAGS.
