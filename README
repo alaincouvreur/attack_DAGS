@@ -1,0 +1,19 @@
+# attack_DAGS
+-------------------------------------
+
+Authors : Élise Barelli and Alain Couvreur
+
+Contact : alain.couvreur@inria.fr
+
+-------------------------------------
+
+This is the implementation of the attack on DAGS scheme presented in 
+the article:
+
+Élise Barelli, Alain Couvreur. An efficient structural attack on NIST submission DAGS.
+Advances in cryptology - ASIACRYPT 2018. Lecture Notes in Comput. Sci. vol 11272, pp 93-118. 
+
+The attack is implemented in file Attack_DAGS.mgm and you can run it
+using file Test_Attack_DAGS.mgm. To apply on various parameters, 
+uncomment the corresponding zone in the header of this file where you can
+choose parameters for DAGS_1, DAGS_3 or DAGS_5.

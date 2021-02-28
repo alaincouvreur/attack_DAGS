@@ -1,0 +1,144 @@
+load "Attack_DAGS.mgm";
+
+/* Parameters */
+
+/*
+//Toy example: DAGS0
+q := 2^4;
+s := 4;
+n := 240;
+t0 := 5;
+t := t0*2^s;
+m := 2;
+num_DAGS:=0;
+*/
+
+/*
+//Toy example: DAGS1_BIS
+q := 2^4;
+s := 3;
+n := 224;
+t0 := 7;
+t := t0*2^s;
+m := 2;
+num_DAGS:=1;
+*/
+
+/*
+// DAGS1
+sec := 128;
+q := 2^5;
+s := 4;
+n := 832;
+t0 := 13;
+t := t0*2^s;
+m := 2;
+num_DAGS:=1;
+*/
+
+/*
+// DAGS1_BIS
+sec := 128;
+q := 2^6;
+s := 4;
+n := 832;
+t0 := 13;
+t := t0*2^s;
+m := 2;
+num_DAGS:=1.1;
+*/
+
+/*
+//DAGS3
+sec := 192;
+q := 2^6;
+s := 5;
+n := 1216;
+t0 := 11;
+t := t0*2^s;
+m := 2;
+num_DAGS:=3;
+*/
+
+
+// DAGS5
+sec := 256;
+q := 2^6;
+s := 6;
+n := 2112;
+t0 := 11;
+t := t0*2^s;
+m := 2;
+num_DAGS:=5;
+
+
+/*
+//DAGS5_bis
+sec := 256;
+q := 2^8;
+s := 5;
+n := 1600;
+t0 := 11;
+t := t0*2^s;
+m := 2;
+num_DAGS:=5.1;
+*/
+
+
+nbr_tests := 1;
+success:=0;
+average_time := 0;
+path := "results.txt";
+f := Open(path, "w");
+
+
+for i:= 1 to nbr_tests do
+    
+    fprintf f, "Test n°%o:\n", i;
+    
+    /* Quasi_dyadic code */
+    printf "\nKey generation ... ";
+    F<w> := GF(q);
+    FF<z> := ext<F|2>;
+    C, GRS, x, y, B, orbit := QDAlternantCode(F, t, m, n, s);
+    print "[OK].\n";
+
+    /* Normalization of the support and multiplier */
+       
+    xprime := [(u+x[1])/(x[1]+x[2]) : u in x];
+    yprime := [u/y[1] : u in y];
+    Bprime := [u/(x[1]+x[2]) : u in B];
+    orbitPrime := [u/(x[1]+x[2]) : u in orbit];
+		       
+    assert Alt(F, t, m, xprime, yprime) eq C;
+    print "\nNormalized support and multiplier... [OK].\n";
+
+    /* Attack */
+
+    print "\n--------------\nRunning the attack:";
+	print "--------------\n";
+    verbose := 1; //Affichage pour "GroebnerBasis" (0 <= verbose <= 4)
+    t0 := Cputime();
+    x_bis, y_bis := Attack_DAGS(F, C, q, t, s, num_DAGS, verbose);
+    t1 := Cputime(t0);
+    printf "\nTime: %o seconds.\n",t1;
+   
+    average_time +:= t1;
+    if (x_bis ne []) and (Alt(F, t, 2, x_bis, y_bis) eq C) then
+        print "\n*********************************";
+		print "Support and multiplier found!!!";
+		print "*********************************\n";
+        success:=success+1;
+    else
+        print "No solution found...";
+    end if;
+    
+    fprintf f, "DAGS_%o: %o sucessful tests among %o, average time = %o\n\n", num_DAGS, success, i, average_time/i;
+    Flush(f);
+   
+end for;
+delete f;
+
+
+
+

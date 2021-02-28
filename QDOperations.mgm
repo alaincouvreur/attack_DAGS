@@ -1,0 +1,217 @@
+/*****************************************************
+This is a package of functions on QD codes such that
+folding and/or taking invariant code
+
+*****************************************************/
+
+//====================================================
+// Function FoldingMat
+//====================================================
+// Inputs: - le corps de definition du code
+// 	   	   - une matrice generatrice
+// 	   	   - une permutation qui agit sur le code.
+//----------------------------------------------------
+// Outputs : La matrice du code replié associé.
+//====================================================
+
+FoldingMat := function(Fld, GenMat, perm)
+
+    n := NumberOfColumns(GenMat);
+    k := NumberOfRows(GenMat);
+    
+    for p in perm do
+        if (LinearCode(GenMat)^p ne LinearCode(GenMat)) then
+    	    print "Attention ", perm," n'est pas
+	    	  un groupe de permutation du code !";
+            return ZeroCode(Fld, n);
+        end if;
+    end for;
+
+    I := IdentityMatrix(Fld,n);
+    Perm := PermutationGroup< n | perm>;
+    	 //Calcul du groupe de permutation <perm>
+    Orb := I^Perm;
+    	//Calcul de toutes les matrices de permutation du groupe Perm
+    Phi := &+Orb;
+    	// Calcul de l'application "folding"
+    return Matrix(GenMat*Phi);
+    	//Matrice du folded code "avec répétition"
+end function;
+
+
+//===========================================================
+// FoldingCode is a wrapper. 
+//===========================================================
+// Inputs : - A code
+//          - A list of permutations
+//-----------------------------------------------------------
+// Outputs : The folded code (non punctured)
+//===========================================================
+
+FoldingCode := function(C, perm)
+	    F := BaseRing(C);
+	    G := GeneratorMatrix(C);
+	    return LinearCode(FoldingMat(F, G, perm));
+end function;
+
+
+
+//===========================================================
+// InvariantCode (another wrapper)
+//===========================================================
+// Inputs : - A code
+//          - A list of permutations
+//-----------------------------------------------------------
+// Outputs : The invariant code (non punctured)
+//===========================================================
+
+InvariantCode := function(C, perm)
+	      Sym := Universe(perm);
+	      G := sub<Sym | perm>;
+	      return Fix(C, G);
+end function;
+
+
+//===========================================================
+// PunctureRepetitions(C, GroupSize)
+//===========================================================
+// This function takes a code with repetitions
+// on 'GroupSize' consecutive positions and
+// returns a code with repetitions removed
+//===========================================================
+// Inputs : - A code C
+//          - The integer GroupSize
+//-----------------------------------------------------------
+// Outputs : The punctured code
+//===========================================================
+
+PunctureRepetitions := function(C, GroupSize)
+		    assert Length(C) mod GroupSize eq 0;
+		    S := {1..Length(C)};
+		    for i := 0 to (Length(C) div GroupSize) - 1 do
+		    	Exclude(~S, 1 + i * GroupSize);
+		    end for;
+		    return PunctureCode(C, S);
+end function;
+
+
+//===========================================================
+// PunctFoldingCode (Wrapper)
+//===========================================================
+
+PunctFoldingCode := function(C, perm);
+		 Cfix := FoldingCode(C, perm);
+		 return PunctureRepetitions(Cfix, 2^(#perm));
+end function;
+
+
+//===========================================================
+// PunctInvariantCode (Wrapper)
+//===========================================================
+
+PunctInvariantCode := function(C, perm);
+		 Cfix := InvariantCode(C, perm);
+		 return PunctureRepetitions(Cfix, 2^(#perm));
+end function;
+
+
+//===========================================================
+// RandomQDCode
+// Generates a random quasi-dyadic code
+//-----------------------------------------------------------
+// Inputs : - The base field F
+//			- The length n_0 of the invariant code (the
+//            actual length should be n_0.s where s is
+//            the group size)
+//          - The dimension k_0 of the invariant code
+//          - The group of permutations G
+//===========================================================
+
+RandomQDCode := function(F, n_0, k_0, G);
+			 k := 0;
+			 s := #G;
+			 while k lt k_0*s do
+			 	   C := RandomLinearCode(F, n_0 * s, k_0);
+				   //print Dimension(C);
+				   B := Basis(C);
+				   B1 := [];
+				   for p in G do
+				   	   B1 cat:= [v^p : v in B];
+				   end for;
+				   //print #B1;
+				   C := LinearCode<F, n_0 * s | B1>;
+				   k := Dimension(C);
+			 end while;
+			 return C;
+end function;
+
+
+
+//=========================================================
+// Function SupportsOfAdditiveParityChecks
+// A local function used for ExtractGPolynomials
+// Generates the list of 4 integers in {0..2^s - 1}
+// whose bitwise Xor is 0
+//---------------------------------------------------------
+// Inputs  : - a positive integer s
+// Outputs : - the full list of 4-tuples of elements of
+//               {0..2^s - 1} with a zero binary sum.
+//=========================================================
+
+SupportsOfAdditiveParityChecks := function(s)
+	L := [];
+	for i in [0..2^s-1] do
+		for j in [i+1..2^s-1] do
+			for k in [j+1..2^s-1] do
+				l := BitwiseXor(i, BitwiseXor(j, k));
+				if l gt k then
+				   Append(~L, [i, j, k, l]);
+				end if;
+			end for;
+		end for;
+	end for;
+	return L;
+end function;
+
+
+
+
+//==========================================================
+// Function ExtractGPolynomials
+//
+// Extracts from the Trace code the codewords
+// from polynomials satisfying
+// f(x + a) = f(x) + f(a) for any a in G
+//----------------------------------------------------------
+// Inputs : - The trace code TC
+//          - The number of generators of the permutation
+//			  	  group s
+// 
+// Outputs : - The expected subcode T;
+//==========================================================
+
+ExtractGPolynomials := function(TC, s)
+	n := Length(TC);
+	assert n mod 2^s eq 0;
+	n0 := n div 2^s;
+
+	V := AmbientSpace(TC);
+	L := SupportsOfAdditiveParityChecks(s);
+	LL := [];
+
+	for i in [1 + t * 2^s : t in [0 .. n0 - 1]] do
+		for l in L do
+			a := V!0;
+			
+			for j in l do
+				a[i + j] := 1; 
+			end for;
+			Append(~LL, a);
+		end for;
+	end for;
+
+	R := LinearCode<BaseRing(TC), n | LL>;
+
+	return Dual(R) meet TC;
+end function;
+

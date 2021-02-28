@@ -1,0 +1,261 @@
+//==========================================================
+// This program generates an alternant code
+// Compared to Magma's AlternantCode primitive
+// This function permits to specify the subfield
+// while Magma's primitive only computes alternant
+// codes on the prime subfield.
+//==========================================================
+
+//==========================================================
+// INPUTS: - The support x (distinct elements of F_q^l);
+//         - The multiplier y
+//         - The degree r of the Alternant code
+//         - The subfield F on which is defined the code.
+//         - The extension degree m
+//----------------------------------------------------------
+// OUTPUTS: - The code Alt (F, r, x, y);
+//          - The GRS whose subfield subcode equals the
+//	          alternant code;
+//==========================================================
+
+function Alt(F, r, m, x, y)
+	 FF<w> := ext <F|m>;	 
+	 R<X> := PolynomialRing(FF, 1);
+
+	 n := #x;
+
+	 // Generate a generator matrix of the dual GRS code.
+	 M:=Matrix(r, n, [[y[i]*x[i]^j : i in {1..n}] :
+	 	      j in {0..r-1}]);
+         
+         C0:=Dual(LinearCode(M));
+		               
+	 return SubfieldSubcode(C0,F), C0;
+end function;    
+
+
+//=========================================================
+// This program generates a random
+// subgroup of s genrators of F_2^m
+//=========================================================
+
+//=========================================================
+// INPUTS: - The ambient field F
+//         - the number of generators s
+//---------------------------------------------------------
+// OUTPUTS : - The list of generators of the group
+//           - The full list of elements of the group
+//=========================================================
+
+function RandomTranslationGroup(F, s)
+	 i := 0;
+	 while i lt s do
+	       Generators := [];
+	       for j:=1 to s do
+	       	   Append(~Generators, Random(F));      
+	       end for;
+
+	       // Check their independence
+
+	       M := Matrix(PrimeField(F),
+	            [ElementToSequence(b) : b in Generators]);
+	       i := Rank(M);
+	 end while;
+	 
+	 Group := [F | 0, Generators[1]];
+	 for b in Generators[2..s] do
+	     U := [a + b : a in Group];
+	     Group cat:= U;
+	 end for;
+
+	 assert #Group eq 2^s;
+	 return Generators, Group;
+end function;
+
+
+//=========================================================
+// This program returns the whole group
+// of translations from a set of generators
+//=========================================================
+
+//=========================================================
+// INPUTS: - the list of generators Generators
+//---------------------------------------------------------
+// OUTPUTS : - The full list of elements of the group
+//=========================================================
+
+function GroupFromGenerators(Generators)
+		 s := #Generators;
+		 Group := [Universe(Generators)| 0, Generators[1]];
+		 for b in Generators[2..s] do
+		 	 U := [a + b : a in Group];
+			 Group cat:= U;
+		 end for;
+
+		 assert #Group eq 2^s;
+		 return Group;
+end function;
+
+//==========================================================
+// And the reciprocal function
+//==========================================================
+
+function GeneratorsFromGroup(Group)
+		 s := 0;
+		 while #Group gt 2^s do
+		 	   s +:= 1;	 
+		 end while;
+		 assert #Group eq 2^s;
+
+		 return [Group[1 + 2^i] : i in {0..s-1}];
+end function;
+
+
+
+//==========================================================
+// This program generates a random
+// Quasi-dyadic alternant code
+//==========================================================
+
+//==========================================================
+// INPUTS: - The code length
+//         - The degree r of the Alternant code
+//         - The subfield F on which is defined the code.
+//         - The extension degree m
+//         - The number of generators s of the
+//             automorphism group
+//----------------------------------------------------------
+// OUTPUTS: - A quasi-dyadic alternant code;
+//          - The GRS code above
+//          - Its support x
+//			- Its multiplier y
+//==========================================================
+
+
+function QDAlternantCode(F, r, m, n, s)
+	 assert (n mod 2^s) eq 0;
+	 FF := ext <F | m>;
+
+	
+	 // Construct generators for the automorphism group
+	 B, orbit := RandomTranslationGroup(FF, s);
+
+	 x := [];
+	 y := []; 
+
+	 while #x lt n do
+	       repeat
+				x_i := Random(FF);
+	       until &and[x_i + a notin x : a in orbit];
+	       x cat:= [x_i + a : a in orbit];
+
+	       repeat
+				y_i := Random(FF);
+	       until y_i ne 0;		       	     
+	       y cat:= [y_i : j in {1..2^s}];	       
+	 end while;
+	 //y := [1 : i in {1..n}];
+	 
+	 C, GRS := Alt(F, r, m, x, y);
+
+	 return C, GRS, x, y, B, orbit;
+end function;
+
+
+//==========================================================
+// This program generates a random
+// Quasi-dyadic alternant code with y = (1 .. 1).
+//==========================================================
+
+//==========================================================
+// INPUTS: - The code length
+//         - The degree r of the Alternant code
+//         - The subfield F on which is defined the code.
+//         - The extension degree m
+//         - The number of generators s of the
+//             automorphism group
+//----------------------------------------------------------
+// OUTPUTS: - A quasi-dyadic alternant code;
+//          - The GRS code above
+//          - Its support x
+//==========================================================
+
+
+function ToyQDAlternantCode(F, r, m, n, s)
+	 assert (n mod 2^s) eq 0;
+	 FF := ext <F | m>;
+
+	
+	 // Construct generators for the automorphism group
+	 i := 0;
+	 while i lt s do
+	       B := [];
+	       for j:=1 to s do
+	       	   Append(~B, Random(FF));      
+	       end for;
+
+	       // Check their independence
+
+	       M := Matrix(PrimeField(FF),
+	            [ElementToSequence(b) : b in B]);
+	       i := Rank(M);
+	 end while;
+	 //print B;
+	 
+
+	 orbit := [FF | 0, B[1]];
+	 for b in B[2..s] do
+	     U := [a + b : a in orbit];
+	     orbit cat:= U;
+	 end for;
+
+	 assert #orbit eq 2^s;
+
+	 x := [];
+	 while #x lt n do
+	       repeat
+				x_i := Random(FF);
+	       until &and[x_i + a notin x : a in orbit];
+	       x cat:= [x_i + a : a in orbit];
+	 end while;
+	 
+	 y := [1 : i in {1..n}];
+	 
+	 C, GRS := Alt(F, r, m, x, y);
+
+	 return C, GRS, x;
+end function;
+
+
+
+//==========================================================
+// This program generates a generating set
+// for the permutation group of a quasi-dyadic code
+//==========================================================
+
+//==========================================================
+// INPUTS: - The code length n (should be a multiple of 2^s)
+//         - the number of generators s (i.e. a group of
+//	         size 2^s)
+//----------------------------------------------------------
+// OUTPUTS: - A list of permutations
+//==========================================================
+
+
+function ListOfPermutations(n, s)
+	 assert (n mod 2^s) eq 0;
+
+	 G := SymmetricGroup(n);
+	 L := [G | G!1 : i in {1..s}];
+	 for i in [1..s] do
+	     for j in [1 .. n - 2^i + 1 by 2^i] do
+	     	 for k in [0 .. 2^(i-1)-1] do
+		     //print j, k;
+		     L[i] := L[i] * G!(j+k, j+k+2^(i-1));
+		 end for;		
+	     end for;
+	 end for;
+	 return L;
+end function;
+
+
