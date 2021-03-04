@@ -121,13 +121,13 @@ for i:= 1 to nbr_tests do
     t0 := Cputime();
     x_bis, y_bis := Attack_DAGS(F, C, q, t, s, num_DAGS, verbose);
     t1 := Cputime(t0);
-    printf "\nTime: %o seconds.\n",t1;
    
     average_time +:= t1;
     if (x_bis ne []) and (Alt(F, t, 2, x_bis, y_bis) eq C) then
         print "\n*********************************";
 		print "Support and multiplier found!!!";
 		print "*********************************\n";
+		printf "\nTime: %o seconds.\n",t1;
         success:=success+1;
     else
         print "No solution found...";
