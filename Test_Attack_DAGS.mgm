@@ -127,7 +127,7 @@ for i:= 1 to nbr_tests do
         print "\n*********************************";
 		print "Support and multiplier found!!!";
 		print "*********************************\n";
-		printf "\nTime: %o seconds.\n",t1;
+		printf "\nRunning Time of the attack: %o seconds.\n",t1;
         success:=success+1;
     else
         print "No solution found...";
